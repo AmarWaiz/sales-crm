@@ -5,6 +5,7 @@ import ExcelUpload from './ExcelUpload';
 import LeadTable from './LeadTable';
 import NotificationBell from './NotificationBell';
 import UserManagement from './UserManagement';
+import EmailSettings from './EmailSettings';
 import LeadDetails from './LeadDetails';
 import { api } from '../services/api';
 import { notificationService } from '../services/notificationService';
@@ -32,7 +33,8 @@ import {
   Award,
   Volume2,
   VolumeX,
-  Zap
+  Zap,
+  Mail
 } from 'lucide-react';
 
 const Dashboard = () => {
@@ -135,7 +137,7 @@ const Dashboard = () => {
     const newState = !soundEnabled;
     setSoundEnabled(newState);
     notificationService.setSoundEnabled(newState);
-    toast.info(newState ? 'Sound notifications enabled' : 'Sound notifications disabled');
+    toast.info(newState ? '🔊 Sound notifications enabled' : '🔇 Sound notifications disabled');
   };
 
   const statCards = [
@@ -194,7 +196,7 @@ const Dashboard = () => {
         <div className="header-content">
           <div className="logo-area">
             <div className="header-logo-icon">
-            <img src="/logo.svg" alt="Logo" className="header-logo-img" />
+              <img src="/logo.svg" alt="Logo" className="header-logo-img" />
             </div>
             <div>
               <h1 className="logo-text">Sales CRM</h1>
@@ -302,6 +304,17 @@ const Dashboard = () => {
               <UserCog size={18} />
               <span>Users</span>
               <span className="tab-count">{users.length}</span>
+            </button>
+          )}
+
+          {/* Email Settings Tab - Only for Admin */}
+          {user?.role === 'admin' && (
+            <button 
+              onClick={() => setActiveTab('email')}
+              className={`tab-btn ${activeTab === 'email' ? 'active' : ''}`}
+            >
+              <Mail size={18} />
+              <span>Email Settings</span>
             </button>
           )}
         </div>
@@ -467,6 +480,11 @@ const Dashboard = () => {
             loadUsers();
             loadData();
           }} />
+        )}
+
+        {/* Email Settings Tab */}
+        {activeTab === 'email' && user?.role === 'admin' && (
+          <EmailSettings user={user} />
         )}
       </div>
 

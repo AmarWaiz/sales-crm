@@ -11,16 +11,20 @@ import {
   Lock,
   User,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  Mail
 } from 'lucide-react';
+import { emailService } from '../services/emailService';
 
 const UserManagement = ({ onUserUpdate }) => {
   const [users, setUsers] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
+  const [sendingEmail, setSendingEmail] = useState(false);
   const [formData, setFormData] = useState({
     id: '',
     name: '',
+    email: '',
     password: '',
     role: 'agent'
   });
@@ -34,9 +38,16 @@ const UserManagement = ({ onUserUpdate }) => {
     setUsers(allUsers);
   };
 
-  const handleAddUser = () => {
-    if (!formData.id || !formData.name || !formData.password) {
+  const handleAddUser = async () => {
+    if (!formData.id || !formData.name || !formData.email || !formData.password) {
       toast.error('Please fill all required fields');
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      toast.error('Please enter a valid email address');
       return;
     }
 
@@ -49,6 +60,7 @@ const UserManagement = ({ onUserUpdate }) => {
     const newUser = {
       id: formData.id,
       name: formData.name,
+      email: formData.email,
       password: formData.password,
       role: formData.role
     };
@@ -56,9 +68,32 @@ const UserManagement = ({ onUserUpdate }) => {
     const updatedUsers = [...users, newUser];
     localStorage.setItem('crm_users', JSON.stringify(updatedUsers));
     loadUsers();
+    
+    // Send welcome email if configured
+    const emailSettings = JSON.parse(localStorage.getItem('email_settings') || '{}');
+    const emailCredentials = JSON.parse(localStorage.getItem('emailjs_credentials') || '{}');
+    const isEmailConfigured = emailCredentials.publicKey && emailCredentials.serviceId && emailCredentials.templateId;
+    
+    if (emailSettings.enabled && emailSettings.welcomeEmails && isEmailConfigured) {
+      setSendingEmail(true);
+      const result = await emailService.sendWelcomeEmail(newUser, formData.password);
+      setSendingEmail(false);
+      
+      if (result.success) {
+        toast.success(`✅ User ${formData.name} added! Welcome email sent to ${formData.email}`);
+      } else {
+        toast.warning(`⚠️ User ${formData.name} added but welcome email failed. Check EmailJS configuration.`);
+      }
+    } else {
+      if (!isEmailConfigured) {
+        toast.info(`✅ User ${formData.name} added. Configure EmailJS to send welcome emails.`);
+      } else {
+        toast.success(`✅ User ${formData.name} added successfully`);
+      }
+    }
+    
     setShowAddModal(false);
-    setFormData({ id: '', name: '', password: '', role: 'agent' });
-    toast.success(`User ${formData.name} added successfully`);
+    setFormData({ id: '', name: '', email: '', password: '', role: 'agent' });
     if (onUserUpdate) onUserUpdate();
   };
 
@@ -139,6 +174,11 @@ const UserManagement = ({ onUserUpdate }) => {
                 <div className="user-info">
                   <h3 className="user-name">{user.name}</h3>
                   <p className="user-id">ID: {user.id}</p>
+                  {user.email && (
+                    <p className="user-email">
+                      <Mail size={12} /> {user.email}
+                    </p>
+                  )}
                   <div className="user-role-badge">
                     {getRoleBadge(user.role)}
                   </div>
@@ -222,6 +262,15 @@ const UserManagement = ({ onUserUpdate }) => {
                 />
               </div>
               <div className="form-group">
+                <label><Mail size={16} /> Email Address *</label>
+                <input
+                  type="email"
+                  placeholder="agent@example.com"
+                  value={formData.email}
+                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                />
+              </div>
+              <div className="form-group">
                 <label><Lock size={16} /> Password *</label>
                 <input
                   type="password"
@@ -242,10 +291,29 @@ const UserManagement = ({ onUserUpdate }) => {
               </div>
             </div>
             <div className="modal-footer">
-              <button className="cancel-btn" onClick={() => setShowAddModal(false)}>Cancel</button>
-              <button className="submit-btn" onClick={handleAddUser}>
-                <CheckCircle size={16} />
-                Add User
+              <button 
+                className="cancel-btn" 
+                onClick={() => setShowAddModal(false)}
+                disabled={sendingEmail}
+              >
+                Cancel
+              </button>
+              <button 
+                className="submit-btn" 
+                onClick={handleAddUser}
+                disabled={sendingEmail}
+              >
+                {sendingEmail ? (
+                  <>
+                    <div className="spinner-small" />
+                    Sending Email...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle size={16} />
+                    Add User
+                  </>
+                )}
               </button>
             </div>
           </div>

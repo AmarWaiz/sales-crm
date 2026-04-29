@@ -236,35 +236,7 @@ const ExcelUpload = ({ onUploadComplete }) => {
             </div>
           </div>
 
-          <div className="template-preview">
-            <div className="preview-title">
-              <Sparkles size={18} />
-              <span>Sample Template Format</span>
-            </div>
-            <div className="preview-grid">
-              <div className="preview-row header">
-                <div>Name</div>
-                <div>Phone</div>
-                <div>Product</div>
-                <div>City</div>
-                <div>Notes</div>
-              </div>
-              <div className="preview-row">
-                <div>John Doe</div>
-                <div>+923001234567</div>
-                <div>Solar Panel</div>
-                <div>Karachi</div>
-                <div>Interested</div>
-              </div>
-              <div className="preview-row">
-                <div>Jane Smith</div>
-                <div>+923001234568</div>
-                <div>AC Service</div>
-                <div>Lahore</div>
-                <div>Commercial</div>
-              </div>
-            </div>
-          </div>
+          
 
           <div className="info-box">
             <AlertCircle size={18} />

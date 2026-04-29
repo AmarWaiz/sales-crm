@@ -4261,6 +4261,485 @@ body {
   transform: scale(1.05);
 }
 
+
+/* =========================================================
+   Email Settings – Modern Dark Theme
+   ========================================================= */
+
+.email-settings-modern {
+  max-width: 1200px;
+  margin: 0 auto;
+  animation: fadeIn 0.3s ease;
+}
+
+/* Header */
+.email-settings-modern .email-header {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 32px;
+  padding: 24px;
+  background: linear-gradient(145deg, #141a1f, #0f1419);
+  border-radius: 28px;
+  border: 1px solid rgba(16, 185, 129, 0.28);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);
+}
+
+.email-settings-modern .email-header-icon {
+  width: 60px;
+  height: 60px;
+  background: rgba(16, 185, 129, 0.14);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.email-settings-modern .email-header h1 {
+  font-size: 26px;
+  font-weight: 800;
+  margin: 0 0 4px 0;
+  color: #ffffff;
+  letter-spacing: -0.3px;
+}
+
+.email-settings-modern .email-header p {
+  font-size: 14px;
+  color: #9eb2c4;
+  margin: 0;
+}
+
+/* Two‑column layout */
+.email-settings-modern .email-two-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+/* Common card style */
+.email-settings-modern .email-config-card,
+.email-settings-modern .email-preferences-card,
+.email-settings-modern .email-test-card,
+.email-settings-modern .setup-guide-card {
+  background: linear-gradient(155deg, #11171c, #0c1116);
+  border-radius: 24px;
+  padding: 24px;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.3);
+}
+
+.email-settings-modern .card-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.email-settings-modern .card-title svg {
+  color: #10b981;
+}
+
+.email-settings-modern .card-title h3 {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+  color: #f0f6ff;
+}
+
+.email-settings-modern .card-subtitle {
+  font-size: 13px;
+  color: #9ab3c5;
+  margin-bottom: 20px;
+}
+
+.email-settings-modern .card-subtitle a {
+  color: #10b981;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.email-settings-modern .card-subtitle a:hover {
+  text-decoration: underline;
+}
+
+/* Configuration fields */
+.email-settings-modern .config-field {
+  margin-bottom: 18px;
+}
+
+.email-settings-modern .config-field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #b8cfdf;
+  margin-bottom: 6px;
+  letter-spacing: 0.3px;
+}
+
+.email-settings-modern .config-field input {
+  width: 100%;
+  padding: 12px 14px;
+  background: #0c1117;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 14px;
+  font-size: 13px;
+  font-family: monospace;
+  color: #eaf6ff;
+  transition: all 0.2s;
+}
+
+.email-settings-modern .config-field input:focus {
+  outline: none;
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+
+.email-settings-modern .save-creds-btn {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  background: linear-gradient(135deg, #10b981, #0f9f6e);
+  border: none;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  margin-top: 6px;
+}
+
+.email-settings-modern .save-creds-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(16, 185, 129, 0.35);
+}
+
+.email-settings-modern .save-creds-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.email-settings-modern .status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  margin-top: 16px;
+  border-radius: 40px;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(16, 185, 129, 0.12);
+  color: #8ef5ca;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+/* Preferences */
+.email-settings-modern .preference-item {
+  margin-bottom: 22px;
+}
+
+.email-settings-modern .switch-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  position: relative;
+}
+
+.email-settings-modern .switch-label input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.email-settings-modern .switch-slider {
+  width: 46px;
+  height: 24px;
+  background: rgba(148, 163, 184, 0.3);
+  border-radius: 40px;
+  transition: 0.2s;
+  position: relative;
+}
+
+.email-settings-modern .switch-slider::before {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background: #ffffff;
+  border-radius: 50%;
+  top: 2px;
+  left: 2px;
+  transition: 0.2s;
+}
+
+.email-settings-modern .switch-label input:checked + .switch-slider {
+  background: #10b981;
+}
+
+.email-settings-modern .switch-label input:checked + .switch-slider::before {
+  transform: translateX(22px);
+}
+
+.email-settings-modern .switch-text {
+  font-weight: 600;
+  color: #f0f6ff;
+}
+
+.email-settings-modern .checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  cursor: pointer;
+  position: relative;
+}
+
+.email-settings-modern .checkbox-label input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.email-settings-modern .checkbox-custom {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(148, 163, 184, 0.6);
+  border-radius: 6px;
+  background: #0c1117;
+  transition: 0.2s;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.email-settings-modern .checkbox-label input:checked + .checkbox-custom {
+  background: #10b981;
+  border-color: #10b981;
+  position: relative;
+}
+
+.email-settings-modern .checkbox-label input:checked + .checkbox-custom::after {
+  content: '✓';
+  position: absolute;
+  color: white;
+  font-size: 12px;
+  top: 0;
+  left: 3px;
+}
+
+.email-settings-modern .checkbox-label div strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: #eef6ff;
+  margin-bottom: 4px;
+}
+
+.email-settings-modern .checkbox-label div p {
+  font-size: 12px;
+  color: #9eb4c5;
+  margin: 0;
+}
+
+.email-settings-modern .checkbox-label input:disabled ~ div {
+  opacity: 0.5;
+}
+
+.email-settings-modern .time-selector {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  margin-left: 34px;
+  padding: 8px 12px;
+  background: rgba(16, 185, 129, 0.08);
+  border-radius: 12px;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.email-settings-modern .time-selector input {
+  background: #0c1117;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 6px 10px;
+  color: #eaf6ff;
+}
+
+.email-settings-modern .save-prefs-btn {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #bcffdf;
+  cursor: pointer;
+  transition: 0.2s;
+  margin-top: 18px;
+}
+
+.email-settings-modern .save-prefs-btn:hover {
+  background: #10b981;
+  color: #ffffff;
+  border-color: #10b981;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+}
+
+/* Test email section */
+.email-settings-modern .test-input-group {
+  display: flex;
+  gap: 14px;
+  margin-top: 20px;
+}
+
+.email-settings-modern .test-input-group input {
+  flex: 1;
+  padding: 12px 16px;
+  background: #0c1117;
+  border: 1px solid #2d3e4e;
+  border-radius: 14px;
+  font-size: 14px;
+  color: #eef6ff;
+}
+
+.email-settings-modern .test-input-group input:focus {
+  outline: none;
+  border-color: #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+.email-settings-modern .test-input-group button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 26px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #befee4;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.email-settings-modern .test-input-group button:hover:not(:disabled) {
+  background: #10b981;
+  color: #ffffff;
+  border-color: #10b981;
+  transform: translateY(-1px);
+}
+
+.email-settings-modern .test-input-group button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Setup guide steps */
+.email-settings-modern .guide-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 14px;
+}
+
+.email-settings-modern .step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 8px 18px;
+  border-radius: 48px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.email-settings-modern .step-number {
+  width: 32px;
+  height: 32px;
+  background: #10b981;
+  border-radius: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.email-settings-modern .step div {
+  font-size: 13px;
+  font-weight: 500;
+  color: #ccddee;
+}
+
+.email-settings-modern .step a {
+  color: #6ae2b5;
+  text-decoration: none;
+}
+
+.email-settings-modern .step a:hover {
+  text-decoration: underline;
+}
+
+.email-settings-modern .step code {
+  background: #1e293b;
+  padding: 2px 8px;
+  border-radius: 30px;
+  font-family: monospace;
+  color: #bafbe6;
+  font-size: 11px;
+  margin-left: 6px;
+}
+
+/* Small fixes and responsiveness */
+@media (max-width: 880px) {
+  .email-settings-modern .email-two-columns {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .email-settings-modern .test-input-group {
+    flex-direction: column;
+  }
+
+  .email-settings-modern .guide-steps {
+    flex-direction: column;
+  }
+
+  .email-settings-modern .step {
+    width: 100%;
+  }
+}
+
+/* Override dark spinner */
+.spinner-small {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 /* Responsive */
 @media (max-width: 1024px) {
   .stats-grid {

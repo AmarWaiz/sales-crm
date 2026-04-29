@@ -1,6 +1,7 @@
 // src/components/LeadDetails.jsx
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
+import { emailService } from '../services/emailService';
 import { toast } from 'react-toastify';
 import { 
   X, 
@@ -20,7 +21,8 @@ import {
   FileText,
   Mail,
   Building,
-  Users
+  Users,
+  Loader
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -33,6 +35,7 @@ const LeadDetails = ({ lead, onClose, onUpdate }) => {
   const [followUpType, setFollowUpType] = useState('call');
   const [followUpNotes, setFollowUpNotes] = useState('');
   const [showFollowUp, setShowFollowUp] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   useEffect(() => {
     loadComments();
@@ -58,7 +61,7 @@ const LeadDetails = ({ lead, onClose, onUpdate }) => {
     }
   };
 
-  const handleSetFollowUp = () => {
+  const handleSetFollowUp = async () => {
     if (!followUpDate || !followUpTime) {
       toast.error('Please select date and time');
       return;
@@ -70,9 +73,53 @@ const LeadDetails = ({ lead, onClose, onUpdate }) => {
       return;
     }
     
+    // Save follow-up
     api.setFollowUp(lead.id, followUpDateTime.toISOString(), followUpType, followUpNotes);
+    
+    // Check email settings and send notification
+    const emailSettings = JSON.parse(localStorage.getItem('email_settings') || '{}');
+    const emailCredentials = JSON.parse(localStorage.getItem('emailjs_credentials') || '{}');
+    const isEmailConfigured = emailCredentials.publicKey && emailCredentials.serviceId && emailCredentials.templateId;
+    
+    if (emailSettings.enabled && emailSettings.followUpReminders && isEmailConfigured) {
+      setSendingEmail(true);
+      
+      // Get assigned agent
+      if (lead.assignedTo && lead.assignedTo !== 'unassigned') {
+        const allUsers = JSON.parse(localStorage.getItem('crm_users') || '[]');
+        const agent = allUsers.find(u => u.id === lead.assignedTo);
+        
+        if (agent && agent.email) {
+          const result = await emailService.sendFollowUpReminder(lead, {
+            type: followUpType,
+            followUpDate: followUpDateTime,
+            notes: followUpNotes
+          }, agent);
+          
+          setSendingEmail(false);
+          
+          if (result.success) {
+            toast.success(`✓ Follow-up scheduled! Email sent to ${agent.name}`);
+          } else {
+            toast.warning(`✓ Follow-up scheduled but email notification failed. Check EmailJS configuration.`);
+          }
+        } else {
+          setSendingEmail(false);
+          toast.info(`✓ Follow-up scheduled. Agent ${lead.assignedTo} has no email configured.`);
+        }
+      } else {
+        setSendingEmail(false);
+        toast.success('✓ Follow-up scheduled successfully');
+      }
+    } else {
+      if (!isEmailConfigured) {
+        toast.info('✓ Follow-up scheduled. Configure EmailJS to send email notifications.');
+      } else {
+        toast.success('✓ Follow-up scheduled successfully');
+      }
+    }
+    
     onUpdate();
-    toast.success(`Follow-up scheduled for ${followUpDateTime.toLocaleString()}`);
     setShowFollowUp(false);
     setFollowUpNotes('');
   };
@@ -152,6 +199,21 @@ const LeadDetails = ({ lead, onClose, onUpdate }) => {
             </div>
           </div>
 
+          {/* Assigned To Info */}
+          {lead.assignedTo && lead.assignedTo !== 'unassigned' && (
+            <div className="assigned-info">
+              <div className="assigned-icon">
+                <Users size={16} color="#06D889" />
+              </div>
+              <div className="assigned-text">
+                <span className="assigned-label">Assigned to:</span>
+                <span className="assigned-value">
+                  {lead.assignedTo === user?.id ? 'You' : lead.assignedTo}
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* Notes Section */}
           {lead.notes && (
             <div className="notes-section">
@@ -230,12 +292,29 @@ const LeadDetails = ({ lead, onClose, onUpdate }) => {
                   />
                 </div>
                 <div className="form-actions">
-                  <button className="cancel-followup" onClick={() => setShowFollowUp(false)}>
+                  <button 
+                    className="cancel-followup" 
+                    onClick={() => setShowFollowUp(false)}
+                    disabled={sendingEmail}
+                  >
                     Cancel
                   </button>
-                  <button className="submit-followup" onClick={handleSetFollowUp}>
-                    <CheckCircle size={16} />
-                    Schedule
+                  <button 
+                    className="submit-followup" 
+                    onClick={handleSetFollowUp}
+                    disabled={sendingEmail}
+                  >
+                    {sendingEmail ? (
+                      <>
+                        <Loader size={16} className="spinning" />
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle size={16} />
+                        Schedule
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
