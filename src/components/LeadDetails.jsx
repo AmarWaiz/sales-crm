@@ -54,7 +54,7 @@ const LeadDetails = ({ lead, onClose, onUpdate }) => {
     tomorrow.setHours(10, 0, 0);
     setFollowUpDate(tomorrow.toISOString().split('T')[0]);
     setFollowUpTime('10:00');
-  }, [lead.id]);
+  }, [lead.id, loadComments]);
 
   const handleAddComment = () => {
     if (newComment.trim()) {

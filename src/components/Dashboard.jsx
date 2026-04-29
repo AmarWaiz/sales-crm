@@ -127,7 +127,7 @@ const Dashboard = () => {
       notificationService.stopChecking();
       window.removeEventListener('openLeadDetails', openLeadDetailsListener);
     };
-  }, []); // FIXED: Empty array is correct since functions are defined outside
+  }, []);
 
   const handleLogout = () => {
     notificationService.stopChecking();
