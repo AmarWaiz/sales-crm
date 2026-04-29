@@ -33,7 +33,6 @@ import {
   Award,
   Volume2,
   VolumeX,
-  Zap,
   Mail
 } from 'lucide-react';
 

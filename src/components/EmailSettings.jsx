@@ -1,6 +1,6 @@
 // src/components/EmailSettings.jsx
 import React, { useState, useEffect } from 'react';
-import { Mail, Bell, Save, TestTube, CheckCircle, AlertCircle, Settings, Send, Shield, Zap, Clock, Users, Volume2 } from 'lucide-react';
+import { Mail, Bell, Save, TestTube, CheckCircle, Settings, Send, Zap, Clock, Volume2 } from 'lucide-react';
 import { emailService } from '../services/emailService';
 import { toast } from 'react-toastify';
 
