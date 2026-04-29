@@ -47,6 +47,58 @@ const Dashboard = () => {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [stats, setStats] = useState({ total: 0, new: 0, contacted: 0, closed: 0 });
 
+  // FIXED: Define loadUsers BEFORE useEffect
+  const loadUsers = () => {
+    const allUsers = JSON.parse(localStorage.getItem('crm_users') || '[]');
+    setUsers(allUsers);
+  };
+
+  // FIXED: Define startNotificationService BEFORE useEffect
+  const startNotificationService = () => {
+    const currentFollowUps = api.getFollowUps();
+    const currentLeads = api.getLeads();
+    
+    notificationService.startChecking(
+      currentFollowUps,
+      currentLeads,
+      (followUp, lead) => {
+        const activityLabel = followUp.type === 'call' ? 'Call' : 'Meeting';
+        toast.info(`Follow-up reminder: ${activityLabel} with ${lead?.name} at ${new Date(followUp.followUpDate).toLocaleTimeString()}`, {
+          position: "top-right",
+          autoClose: 10000,
+        });
+      },
+      30
+    );
+  };
+
+  // FIXED: Define loadData BEFORE useEffect
+  const loadData = () => {
+    const allLeads = api.getLeads();
+    setLeads(allLeads);
+    
+    const allFollowUps = api.getFollowUps();
+    setFollowUps(allFollowUps);
+    
+    const missed = api.getMissedFollowUps();
+    setMissedFollowUps(missed);
+    
+    if (missed.length > 0 && missed.length > missedFollowUps.length) {
+      toast.warning(`You have ${missed.length} missed follow-up(s).`);
+    }
+    
+    setStats({
+      total: allLeads.length,
+      new: allLeads.filter(l => l.status === 'New').length,
+      contacted: allLeads.filter(l => l.status === 'Contacted').length,
+      closed: allLeads.filter(l => l.status === 'Closed').length
+    });
+    
+    notificationService.stopChecking();
+    startNotificationService();
+  };
+
+  // FIXED: useEffect with correct dependency array - functions defined outside
   useEffect(() => {
     loadData();
     loadUsers();
@@ -75,56 +127,7 @@ const Dashboard = () => {
       notificationService.stopChecking();
       window.removeEventListener('openLeadDetails', openLeadDetailsListener);
     };
-  }, []);
-
-  const startNotificationService = () => {
-    const currentFollowUps = api.getFollowUps();
-    const currentLeads = api.getLeads();
-    
-    notificationService.startChecking(
-      currentFollowUps,
-      currentLeads,
-      (followUp, lead) => {
-        loadData();
-        const activityLabel = followUp.type === 'call' ? 'Call' : 'Meeting';
-        toast.info(`Follow-up reminder: ${activityLabel} with ${lead?.name} at ${new Date(followUp.followUpDate).toLocaleTimeString()}`, {
-          position: "top-right",
-          autoClose: 10000,
-        });
-      },
-      30
-    );
-  };
-
-  const loadData = () => {
-    const allLeads = api.getLeads();
-    setLeads(allLeads);
-    
-    const allFollowUps = api.getFollowUps();
-    setFollowUps(allFollowUps);
-    
-    const missed = api.getMissedFollowUps();
-    setMissedFollowUps(missed);
-    
-    if (missed.length > 0 && missed.length > missedFollowUps.length) {
-      toast.warning(`You have ${missed.length} missed follow-up(s).`);
-    }
-    
-    setStats({
-      total: allLeads.length,
-      new: allLeads.filter(l => l.status === 'New').length,
-      contacted: allLeads.filter(l => l.status === 'Contacted').length,
-      closed: allLeads.filter(l => l.status === 'Closed').length
-    });
-    
-    notificationService.stopChecking();
-    startNotificationService();
-  };
-
-  const loadUsers = () => {
-    const allUsers = JSON.parse(localStorage.getItem('crm_users') || '[]');
-    setUsers(allUsers);
-  };
+  }, []); // FIXED: Empty array is correct since functions are defined outside
 
   const handleLogout = () => {
     notificationService.stopChecking();

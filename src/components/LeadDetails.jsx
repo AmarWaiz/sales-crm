@@ -37,8 +37,17 @@ const LeadDetails = ({ lead, onClose, onUpdate }) => {
   const [showFollowUp, setShowFollowUp] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
 
+  // FIXED: Define loadComments BEFORE useEffect
+  const loadComments = () => {
+    const leadComments = api.getComments(lead.id);
+    setComments(leadComments);
+  };
+
+  // FIXED: Correct useEffect with proper dependency array
   useEffect(() => {
+    // Load comments when lead changes
     loadComments();
+    
     // Set default date and time (tomorrow at 10 AM)
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -46,11 +55,6 @@ const LeadDetails = ({ lead, onClose, onUpdate }) => {
     setFollowUpDate(tomorrow.toISOString().split('T')[0]);
     setFollowUpTime('10:00');
   }, [lead.id]);
-
-  const loadComments = () => {
-    const leadComments = api.getComments(lead.id);
-    setComments(leadComments);
-  };
 
   const handleAddComment = () => {
     if (newComment.trim()) {

@@ -281,7 +281,7 @@ const EmailSettings = ({ user }) => {
         <div className="guide-steps">
           <div className="step">
             <div className="step-number">1</div>
-            <div>Create <a href="https://www.emailjs.com" target="_blank">EmailJS</a> account (FREE)</div>
+            <div>Create <a href="https://www.emailjs.com" target="_blank" rel="noreferrer">EmailJS</a> account (FREE)</div>
           </div>
           <div className="step">
             <div className="step-number">2</div>
