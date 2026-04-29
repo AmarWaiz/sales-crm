@@ -1,5 +1,5 @@
 // src/components/Dashboard.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import ExcelUpload from './ExcelUpload';
 import LeadTable from './LeadTable';
@@ -40,21 +40,19 @@ const Dashboard = () => {
   const { user, logout } = useAuth();
   const [leads, setLeads] = useState([]);
   const [followUps, setFollowUps] = useState([]);
-  const [missedFollowUps, setMissedFollowUps] = useState([]);
+  const [, setMissedFollowUps] = useState([]);
   const [activeTab, setActiveTab] = useState('leads');
   const [users, setUsers] = useState([]);
   const [selectedLead, setSelectedLead] = useState(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [stats, setStats] = useState({ total: 0, new: 0, contacted: 0, closed: 0 });
 
-  // FIXED: Define loadUsers BEFORE useEffect
-  const loadUsers = () => {
+  const loadUsers = useCallback(() => {
     const allUsers = JSON.parse(localStorage.getItem('crm_users') || '[]');
     setUsers(allUsers);
-  };
+  }, []);
 
-  // FIXED: Define startNotificationService BEFORE useEffect
-  const startNotificationService = () => {
+  const startNotificationService = useCallback(() => {
     const currentFollowUps = api.getFollowUps();
     const currentLeads = api.getLeads();
     
@@ -70,10 +68,9 @@ const Dashboard = () => {
       },
       30
     );
-  };
+  }, []);
 
-  // FIXED: Define loadData BEFORE useEffect
-  const loadData = () => {
+  const loadData = useCallback(() => {
     const allLeads = api.getLeads();
     setLeads(allLeads);
     
@@ -81,11 +78,13 @@ const Dashboard = () => {
     setFollowUps(allFollowUps);
     
     const missed = api.getMissedFollowUps();
-    setMissedFollowUps(missed);
-    
-    if (missed.length > 0 && missed.length > missedFollowUps.length) {
-      toast.warning(`You have ${missed.length} missed follow-up(s).`);
-    }
+    setMissedFollowUps((previousMissedFollowUps) => {
+      if (missed.length > 0 && missed.length > previousMissedFollowUps.length) {
+        toast.warning(`You have ${missed.length} missed follow-up(s).`);
+      }
+
+      return missed;
+    });
     
     setStats({
       total: allLeads.length,
@@ -96,16 +95,14 @@ const Dashboard = () => {
     
     notificationService.stopChecking();
     startNotificationService();
-  };
+  }, [startNotificationService]);
 
-  // FIXED: useEffect with correct dependency array - functions defined outside
   useEffect(() => {
     loadData();
     loadUsers();
     
     notificationService.requestNotificationPermission();
     setSoundEnabled(notificationService.getSoundEnabled());
-    startNotificationService();
     
     const interval = setInterval(() => {
       loadData();
@@ -127,7 +124,7 @@ const Dashboard = () => {
       notificationService.stopChecking();
       window.removeEventListener('openLeadDetails', openLeadDetailsListener);
     };
-  }, []);
+  }, [loadData, loadUsers]);
 
   const handleLogout = () => {
     notificationService.stopChecking();

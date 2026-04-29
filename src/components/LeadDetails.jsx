@@ -1,5 +1,5 @@
 // src/components/LeadDetails.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '../services/api';
 import { emailService } from '../services/emailService';
 import { toast } from 'react-toastify';
@@ -10,16 +10,13 @@ import {
   Package, 
   Calendar, 
   Clock, 
-  User, 
   MessageCircle,
   Send,
   Bell,
   CheckCircle,
   AlertCircle,
   Star,
-  TrendingUp,
   FileText,
-  Mail,
   Building,
   Users,
   Loader
@@ -37,15 +34,12 @@ const LeadDetails = ({ lead, onClose, onUpdate }) => {
   const [showFollowUp, setShowFollowUp] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
 
-  // FIXED: Define loadComments BEFORE useEffect
-  const loadComments = () => {
+  const loadComments = useCallback(() => {
     const leadComments = api.getComments(lead.id);
     setComments(leadComments);
-  };
+  }, [lead.id]);
 
-  // FIXED: Correct useEffect with proper dependency array
   useEffect(() => {
-    // Load comments when lead changes
     loadComments();
     
     // Set default date and time (tomorrow at 10 AM)
@@ -54,7 +48,7 @@ const LeadDetails = ({ lead, onClose, onUpdate }) => {
     tomorrow.setHours(10, 0, 0);
     setFollowUpDate(tomorrow.toISOString().split('T')[0]);
     setFollowUpTime('10:00');
-  }, [lead.id, loadComments]);
+  }, [loadComments]);
 
   const handleAddComment = () => {
     if (newComment.trim()) {
