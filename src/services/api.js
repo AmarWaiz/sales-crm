@@ -71,6 +71,48 @@ const initializeData = () => {
   }
 };
 
+const getStoredArray = (storageKey) => {
+  return JSON.parse(localStorage.getItem(storageKey) || '[]');
+};
+
+const normalizeAgentIds = (agentIds) => {
+  if (!agentIds) return [];
+  return Array.isArray(agentIds) ? agentIds.filter(Boolean) : [agentIds].filter(Boolean);
+};
+
+const canCurrentUserAccessLead = (leadId) => {
+  const currentUser = api.getCurrentUser();
+  if (currentUser?.role === 'admin') {
+    return true;
+  }
+
+  return api.getLeads().some((lead) => lead.id === leadId);
+};
+
+const getAssignedAgentId = (index, totalLeads, agentIds, mode) => {
+  if (agentIds.length === 0) {
+    return null;
+  }
+
+  if (mode === 'balanced') {
+    const baseCount = Math.floor(totalLeads / agentIds.length);
+    const remainder = totalLeads % agentIds.length;
+    let startIndex = 0;
+
+    for (let agentIndex = 0; agentIndex < agentIds.length; agentIndex += 1) {
+      const chunkSize = baseCount + (agentIndex < remainder ? 1 : 0);
+      if (index < startIndex + chunkSize) {
+        return agentIds[agentIndex];
+      }
+      startIndex += chunkSize;
+    }
+
+    return agentIds[agentIds.length - 1];
+  }
+
+  return agentIds[index % agentIds.length];
+};
+
 export const api = {
   // Auth
   login: (id, password) => {
@@ -183,38 +225,49 @@ export const api = {
     return null;
   },
 
-  uploadLeads: (leadsData, assignedTo = null) => {
+  uploadLeads: (leadsData, agentIds = [], mode = 'round-robin') => {
     const currentUser = api.getCurrentUser();
-    const leads = JSON.parse(localStorage.getItem(STORAGE_KEYS.LEADS));
+    const leads = getStoredArray(STORAGE_KEYS.LEADS);
+    const selectedAgentIds = normalizeAgentIds(agentIds);
+    const validMode = mode === 'balanced' ? 'balanced' : 'round-robin';
     
-    const newLeads = leadsData.map(lead => ({
-      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-      name: lead.Name || lead.name,
-      phone: lead.Phone || lead.phone,
-      product: lead.Product || lead.product,
-      city: lead.City || lead.city,
-      notes: lead.Notes || lead.notes || '',
-      status: 'New',
-      assignedTo: assignedTo || (currentUser.role === 'admin' ? 'unassigned' : currentUser.id),
-      createdAt: new Date().toISOString()
-    }));
+    const newLeads = leadsData.map((lead, index) => {
+      const assignedAgentId = getAssignedAgentId(index, leadsData.length, selectedAgentIds, validMode);
+
+      return {
+        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+        name: lead.Name || lead.name,
+        phone: lead.Phone || lead.phone,
+        product: lead.Product || lead.product,
+        city: lead.City || lead.city,
+        notes: lead.Notes || lead.notes || '',
+        status: 'New',
+        assignedTo: assignedAgentId || (currentUser?.role === 'admin' ? 'unassigned' : currentUser?.id),
+        createdAt: new Date().toISOString()
+      };
+    });
     
     localStorage.setItem(STORAGE_KEYS.LEADS, JSON.stringify([...leads, ...newLeads]));
     
     // Create notifications for assigned agents
-    if (assignedTo && assignedTo !== 'unassigned') {
-      const assignedUser = api.getUserById(assignedTo);
-      if (assignedUser) {
-        newLeads.forEach(lead => {
+    newLeads
+      .filter((lead) => lead.assignedTo && lead.assignedTo !== 'unassigned')
+      .forEach((lead) => {
+        const assignedUser = api.getUserById(lead.assignedTo);
+        if (assignedUser) {
           api.createNotification(lead.id, `New lead "${lead.name}" assigned to you`);
-        });
-      }
-    }
+        }
+      });
     
     return newLeads;
   },
 
   deleteLead: (leadId) => {
+    const currentUser = api.getCurrentUser();
+    if (currentUser?.role !== 'admin') {
+      throw new Error('Only administrators can delete leads.');
+    }
+
     const leads = JSON.parse(localStorage.getItem(STORAGE_KEYS.LEADS));
     const updatedLeads = leads.filter(lead => lead.id !== leadId);
     localStorage.setItem(STORAGE_KEYS.LEADS, JSON.stringify(updatedLeads));
@@ -231,10 +284,46 @@ export const api = {
     return true;
   },
 
+  deleteLeads: (leadIds) => {
+    const currentUser = api.getCurrentUser();
+    if (currentUser?.role !== 'admin') {
+      throw new Error('Only administrators can delete leads.');
+    }
+
+    const idsToDelete = new Set(leadIds);
+    const leads = getStoredArray(STORAGE_KEYS.LEADS);
+    const comments = getStoredArray(STORAGE_KEYS.COMMENTS);
+    const followUps = getStoredArray(STORAGE_KEYS.FOLLOW_UPS);
+    const notifications = getStoredArray(STORAGE_KEYS.NOTIFICATIONS);
+
+    localStorage.setItem(
+      STORAGE_KEYS.LEADS,
+      JSON.stringify(leads.filter((lead) => !idsToDelete.has(lead.id)))
+    );
+    localStorage.setItem(
+      STORAGE_KEYS.COMMENTS,
+      JSON.stringify(comments.filter((comment) => !idsToDelete.has(comment.leadId)))
+    );
+    localStorage.setItem(
+      STORAGE_KEYS.FOLLOW_UPS,
+      JSON.stringify(followUps.filter((followUp) => !idsToDelete.has(followUp.leadId)))
+    );
+    localStorage.setItem(
+      STORAGE_KEYS.NOTIFICATIONS,
+      JSON.stringify(notifications.filter((notification) => !idsToDelete.has(notification.leadId)))
+    );
+
+    return true;
+  },
+
   // Comments
   addComment: (leadId, comment) => {
+    if (!canCurrentUserAccessLead(leadId)) {
+      throw new Error('You do not have permission to comment on this lead.');
+    }
+
     const currentUser = api.getCurrentUser();
-    const comments = JSON.parse(localStorage.getItem(STORAGE_KEYS.COMMENTS));
+    const comments = getStoredArray(STORAGE_KEYS.COMMENTS);
     const newComment = {
       id: Date.now().toString(),
       leadId,
@@ -256,16 +345,22 @@ export const api = {
   },
 
   getComments: (leadId) => {
-    const comments = JSON.parse(localStorage.getItem(STORAGE_KEYS.COMMENTS));
-    return comments.filter(c => c.leadId === leadId).sort((a, b) => 
+    const allowedLeadIds = new Set(api.getLeads().map((lead) => lead.id));
+    const comments = getStoredArray(STORAGE_KEYS.COMMENTS);
+
+    return comments.filter(c => c.leadId === leadId && allowedLeadIds.has(c.leadId)).sort((a, b) => 
       new Date(b.createdAt) - new Date(a.createdAt)
     );
   },
 
   // Follow-ups
   setFollowUp: (leadId, followUpDate, type, notes) => {
+    if (!canCurrentUserAccessLead(leadId)) {
+      throw new Error('You do not have permission to schedule a follow-up for this lead.');
+    }
+
     const currentUser = api.getCurrentUser();
-    const followUps = JSON.parse(localStorage.getItem(STORAGE_KEYS.FOLLOW_UPS));
+    const followUps = getStoredArray(STORAGE_KEYS.FOLLOW_UPS);
     const newFollowUp = {
       id: Date.now().toString(),
       leadId,
@@ -281,7 +376,7 @@ export const api = {
     
     // Create notification
     const lead = api.getLeadById(leadId);
-    api.createNotification(leadId, `Follow-up scheduled for ${new Date(followUpDate).toLocaleString()} - ${type === 'call' ? '📞 Call' : '👥 Meeting'} with ${lead?.name}`);
+    api.createNotification(leadId, `Follow-up scheduled for ${new Date(followUpDate).toLocaleString()} - ${type === 'call' ? 'Call' : 'Meeting'} with ${lead?.name}`);
     
     return newFollowUp;
   },
@@ -368,7 +463,7 @@ export const api = {
     const leads = api.getLeads();
     const leadIds = new Set(leads.map((lead) => lead.id));
     const notifications = JSON.parse(localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS)) || [];
-    const remaining = notifications.filter((notification) => leadIds.has(notification.leadId));
+    const remaining = notifications.filter((notification) => !leadIds.has(notification.leadId));
     localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(remaining));
     return true;
   },

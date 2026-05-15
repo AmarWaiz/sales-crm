@@ -48,9 +48,10 @@ const NotificationBell = ({ onNotificationClick }) => {
     notificationService.setSoundEnabled(newState);
   };
 
-  const clearAllNotifications = () => {
+  const clearAllNotifications = (event) => {
+    event?.stopPropagation();
     api.clearNotifications();
-    loadNotifications();
+    setNotifications([]);
     if (onNotificationClick) onNotificationClick();
   };
 

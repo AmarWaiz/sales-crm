@@ -21,7 +21,8 @@ const ExcelUpload = ({ onUploadComplete }) => {
   const [uploading, setUploading] = useState(false);
   const [fileData, setFileData] = useState(null);
   const [preview, setPreview] = useState([]);
-  const [assignTo, setAssignTo] = useState('');
+  const [selectedAgentIds, setSelectedAgentIds] = useState([]);
+  const [distributionMode, setDistributionMode] = useState('round-robin');
   const [agents, setAgents] = useState([]);
   const [dragOver, setDragOver] = useState(false);
   const [fileName, setFileName] = useState('');
@@ -39,9 +40,51 @@ const ExcelUpload = ({ onUploadComplete }) => {
   }, []);
 
   const loadAgents = () => {
-    const allUsers = JSON.parse(localStorage.getItem('crm_users') || '[]');
-    const agentUsers = allUsers.filter(user => user.role === 'agent' || !user.role);
+    const agentUsers = api.getUsers().filter(user => user.role === 'agent');
     setAgents(agentUsers);
+  };
+
+  const calculateDistributionPreview = (leadCount, agentIds, mode) => {
+    const counts = agentIds.reduce((result, agentId) => {
+      result[agentId] = 0;
+      return result;
+    }, {});
+
+    if (leadCount === 0 || agentIds.length === 0) {
+      return counts;
+    }
+
+    if (mode === 'balanced') {
+      const baseCount = Math.floor(leadCount / agentIds.length);
+      const remainder = leadCount % agentIds.length;
+
+      agentIds.forEach((agentId, index) => {
+        counts[agentId] = baseCount + (index < remainder ? 1 : 0);
+      });
+
+      return counts;
+    }
+
+    for (let index = 0; index < leadCount; index += 1) {
+      const agentId = agentIds[index % agentIds.length];
+      counts[agentId] += 1;
+    }
+
+    return counts;
+  };
+
+  const distributionPreview = calculateDistributionPreview(
+    fileData?.length || 0,
+    selectedAgentIds,
+    distributionMode
+  );
+
+  const toggleSelectedAgent = (agentId) => {
+    setSelectedAgentIds((currentAgentIds) => (
+      currentAgentIds.includes(agentId)
+        ? currentAgentIds.filter((selectedAgentId) => selectedAgentId !== agentId)
+        : [...currentAgentIds, agentId]
+    ));
   };
 
   const processFile = (file) => {
@@ -110,20 +153,21 @@ const ExcelUpload = ({ onUploadComplete }) => {
     
     try {
       await new Promise(resolve => setTimeout(resolve, 1000));
-      // Pass the selected agent ID to assign leads
-      api.uploadLeads(fileData, assignTo || null);
-      
-      const assignedAgent = agents.find(a => String(a.id) === String(assignTo));
-      const agentName = assignTo ? (assignedAgent?.name || `ID ${assignTo}`) : 'Unassigned';
-      toast.success(`Successfully imported ${fileData.length} leads and assigned to ${agentName}.`);
+      api.uploadLeads(fileData, selectedAgentIds, distributionMode);
+
+      const assignmentText = selectedAgentIds.length > 0
+        ? `assigned to ${selectedAgentIds.length} agent${selectedAgentIds.length === 1 ? '' : 's'}`
+        : 'left unassigned';
+      toast.success(`${fileData.length} leads imported and ${assignmentText}.`);
       onUploadComplete();
       setFileData(null);
       setPreview([]);
       setFileName('');
-      setAssignTo('');
+      setSelectedAgentIds([]);
+      setDistributionMode('round-robin');
       setUploadProgress(0);
     } catch (error) {
-      toast.error('Error uploading leads');
+      toast.error(error?.message || 'Error uploading leads');
       setUploadProgress(0);
     } finally {
       setUploading(false);
@@ -159,7 +203,8 @@ const ExcelUpload = ({ onUploadComplete }) => {
     setFileData(null);
     setPreview([]);
     setFileName('');
-    setAssignTo('');
+    setSelectedAgentIds([]);
+    setDistributionMode('round-robin');
   };
 
   return (
@@ -197,8 +242,8 @@ const ExcelUpload = ({ onUploadComplete }) => {
                 <UserCheck size={20} />
               </div>
               <div>
-                <h4>Assign to Agent</h4>
-                <p>Auto-assign leads to specific agents</p>
+                <h4>Assign to Agents</h4>
+                <p>Distribute leads across your sales team</p>
               </div>
             </div>
             <div className="feature">
@@ -269,28 +314,71 @@ const ExcelUpload = ({ onUploadComplete }) => {
           <div className="assign-agent-section">
             <div className="assign-agent-header">
               <Users size={18} color="#06D889" />
-              <span>Assign to Agent</span>
+              <span>Assign to Agents</span>
             </div>
             <div className="assign-agent-content">
-              <select 
-                value={assignTo}
-                onChange={(e) => setAssignTo(e.target.value)}
-                className="agent-select"
-              >
-                <option value="">-- Select an Agent --</option>
+              <div className="distribution-mode">
+                <label>
+                  <input
+                    type="radio"
+                    name="distributionMode"
+                    value="round-robin"
+                    checked={distributionMode === 'round-robin'}
+                    onChange={(e) => setDistributionMode(e.target.value)}
+                  />
+                  Round-Robin
+                </label>
+                <label>
+                  <input
+                    type="radio"
+                    name="distributionMode"
+                    value="balanced"
+                    checked={distributionMode === 'balanced'}
+                    onChange={(e) => setDistributionMode(e.target.value)}
+                  />
+                  Balanced
+                </label>
+              </div>
+
+              <div className="agent-checkbox-list">
                 {agents.map(agent => (
-                  <option key={agent.id} value={String(agent.id)}>
-                    {agent.name} ({agent.id})
-                  </option>
+                  <label key={agent.id} className="agent-checkbox-option">
+                    <input
+                      type="checkbox"
+                      checked={selectedAgentIds.includes(agent.id)}
+                      onChange={() => toggleSelectedAgent(agent.id)}
+                    />
+                    <span>{agent.name} ({agent.id})</span>
+                  </label>
                 ))}
-              </select>
+              </div>
+
               <p className="assign-hint">
-                {assignTo ? (
-                  `Leads will be assigned to ${agents.find(a => String(a.id) === String(assignTo))?.name || 'selected agent'}`
+                {selectedAgentIds.length > 0 ? (
+                  `${fileData.length} leads will be distributed to ${selectedAgentIds.length} selected agent${selectedAgentIds.length === 1 ? '' : 's'}.`
                 ) : (
                   "Leads will be unassigned. Admin can assign them later."
                 )}
               </p>
+
+              {selectedAgentIds.length > 0 && (
+                <div className="distribution-preview">
+                  <div className="preview-header">
+                    <Sparkles size={16} />
+                    <span>Assignment Preview</span>
+                  </div>
+                  {selectedAgentIds.map((agentId) => {
+                    const agent = agents.find((agentItem) => agentItem.id === agentId);
+                    return (
+                      <div key={agentId} className="distribution-preview-row">
+                        <span>{agent?.name || agentId}</span>
+                        <strong>{distributionPreview[agentId] || 0} leads</strong>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
               {agents.length === 0 && (
                 <p className="assign-hint">No agents found. Add agent users from User Management to enable assignment.</p>
               )}

@@ -18,6 +18,7 @@
     "react-router-dom": "^7.14.2",
     "react-scripts": "^5.0.0",
     "react-toastify": "^11.1.0",
+    "recharts": "^3.8.1",
     "web-vitals": "^2.1.4",
     "xlsx": "^0.18.5"
   },
@@ -28,11 +29,11 @@
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
-  "extends": "react-app",
-  "rules": {
-    "no-unused-vars": "off"
-  }
-},
+    "extends": "react-app",
+    "rules": {
+      "no-unused-vars": "off"
+    }
+  },
   "browserslist": {
     "production": [
       ">0.2%",

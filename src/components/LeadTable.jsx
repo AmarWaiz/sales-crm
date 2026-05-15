@@ -28,6 +28,8 @@ const LeadTable = ({ leads, onLeadUpdate }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [sortBy, setSortBy] = useState('name');
+  const [selectedLeadIds, setSelectedLeadIds] = useState([]);
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
 
   const getStatusConfig = (status) => {
     switch(status) {
@@ -83,16 +85,15 @@ const LeadTable = ({ leads, onLeadUpdate }) => {
   };
 
   const handleDeleteLead = (leadId, leadName) => {
-    // Get all leads
-    const allLeads = JSON.parse(localStorage.getItem('crm_leads') || '[]');
-    // Filter out the lead to delete
-    const updatedLeads = allLeads.filter(lead => lead.id !== leadId);
-    // Save back to localStorage
-    localStorage.setItem('crm_leads', JSON.stringify(updatedLeads));
-    // Update the UI
-    onLeadUpdate();
-    setShowDeleteConfirm(null);
-    toast.success(`Lead "${leadName}" deleted successfully`);
+    try {
+      api.deleteLead(leadId);
+      setSelectedLeadIds((currentIds) => currentIds.filter((id) => id !== leadId));
+      onLeadUpdate();
+      setShowDeleteConfirm(null);
+      toast.success(`Lead "${leadName}" deleted successfully`);
+    } catch (error) {
+      toast.error(error?.message || 'Unable to delete lead');
+    }
   };
 
   // Filter and search leads
@@ -111,6 +112,40 @@ const LeadTable = ({ leads, onLeadUpdate }) => {
     if (sortBy === 'date') return new Date(b.createdAt) - new Date(a.createdAt);
     return 0;
   });
+
+  const visibleLeadIds = sortedLeads.map((lead) => lead.id);
+  const selectedVisibleLeadIds = selectedLeadIds.filter((leadId) => visibleLeadIds.includes(leadId));
+  const allVisibleSelected = visibleLeadIds.length > 0 && selectedVisibleLeadIds.length === visibleLeadIds.length;
+
+  const toggleLeadSelection = (leadId) => {
+    setSelectedLeadIds((currentIds) => (
+      currentIds.includes(leadId)
+        ? currentIds.filter((id) => id !== leadId)
+        : [...currentIds, leadId]
+    ));
+  };
+
+  const toggleSelectVisibleLeads = () => {
+    setSelectedLeadIds((currentIds) => {
+      if (allVisibleSelected) {
+        return currentIds.filter((leadId) => !visibleLeadIds.includes(leadId));
+      }
+
+      return Array.from(new Set([...currentIds, ...visibleLeadIds]));
+    });
+  };
+
+  const handleBulkDelete = () => {
+    try {
+      api.deleteLeads(selectedLeadIds);
+      toast.success(`${selectedLeadIds.length} lead${selectedLeadIds.length === 1 ? '' : 's'} deleted successfully`);
+      setSelectedLeadIds([]);
+      setShowBulkDeleteConfirm(false);
+      onLeadUpdate();
+    } catch (error) {
+      toast.error(error?.message || 'Unable to delete selected leads');
+    }
+  };
 
   const filters = [
     { key: 'all', label: 'All Leads', icon: <Filter size={14} />, count: leads.length },
@@ -175,6 +210,33 @@ const LeadTable = ({ leads, onLeadUpdate }) => {
         </div>
       </div>
 
+      {user?.role === 'admin' && sortedLeads.length > 0 && (
+        <div className="bulk-actions-bar">
+          <label className="bulk-select-toggle">
+            <input
+              type="checkbox"
+              checked={allVisibleSelected}
+              onChange={toggleSelectVisibleLeads}
+            />
+            <span className="bulk-checkmark" aria-hidden="true"></span>
+            <span>Select visible leads</span>
+          </label>
+
+          <div className="bulk-actions-meta">
+            <span className="bulk-selected-count">{selectedLeadIds.length} selected</span>
+            <button
+              type="button"
+              className="bulk-delete-btn"
+              disabled={selectedLeadIds.length === 0}
+              onClick={() => setShowBulkDeleteConfirm(true)}
+            >
+              <Trash2 size={16} />
+              Delete Selected
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Leads Grid */}
       <div className="leads-grid">
         {sortedLeads.length === 0 ? (
@@ -186,8 +248,9 @@ const LeadTable = ({ leads, onLeadUpdate }) => {
         ) : (
           sortedLeads.map((lead) => {
             const statusConfig = getStatusConfig(lead.status);
+            const isSelected = selectedLeadIds.includes(lead.id);
             return (
-              <div key={lead.id} className="lead-card">
+              <div key={lead.id} className={`lead-card ${isSelected ? 'selected' : ''}`}>
                 {/* Lead Header */}
                 <div className="lead-card-header">
                   <div className="lead-avatar">
@@ -200,13 +263,25 @@ const LeadTable = ({ leads, onLeadUpdate }) => {
                       {lead.notes && <span className="lead-notes-badge"> Has notes</span>}
                     </div>
                   </div>
-                  <div className="lead-status-badge" style={{ 
-                    background: statusConfig.bg,
-                    color: statusConfig.color,
-                    borderLeftColor: statusConfig.border
-                  }}>
-                    {statusConfig.icon}
-                    <span>{statusConfig.label}</span>
+                  <div className="lead-card-controls">
+                    <div className="lead-status-badge" style={{ 
+                      background: statusConfig.bg,
+                      color: statusConfig.color,
+                      borderLeftColor: statusConfig.border
+                    }}>
+                      {statusConfig.icon}
+                      <span>{statusConfig.label}</span>
+                    </div>
+                    {user?.role === 'admin' && (
+                      <label className="lead-select-checkbox" title="Select lead">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleLeadSelection(lead.id)}
+                        />
+                        <span className="lead-checkmark" aria-hidden="true"></span>
+                      </label>
+                    )}
                   </div>
                 </div>
 
@@ -331,6 +406,33 @@ const LeadTable = ({ leads, onLeadUpdate }) => {
           })
         )}
       </div>
+
+      {showBulkDeleteConfirm && (
+        <div className="delete-confirm-overlay">
+          <div className="delete-confirm-box">
+            <AlertCircle size={32} color="#f44336" />
+            <h4>Delete Selected Leads?</h4>
+            <p>
+              Are you sure you want to delete <strong>{selectedLeadIds.length}</strong> selected
+              lead{selectedLeadIds.length === 1 ? '' : 's'}? Related comments and follow-ups will also be removed.
+            </p>
+            <div className="delete-confirm-actions">
+              <button 
+                onClick={handleBulkDelete}
+                className="confirm-delete-btn"
+              >
+                Yes, Delete
+              </button>
+              <button 
+                onClick={() => setShowBulkDeleteConfirm(false)}
+                className="cancel-delete-btn"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Lead Details Modal */}
       {selectedLead && (

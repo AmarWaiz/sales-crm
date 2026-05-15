@@ -33,6 +33,7 @@ const LeadDetails = ({ lead, onClose, onUpdate }) => {
   const [followUpNotes, setFollowUpNotes] = useState('');
   const [showFollowUp, setShowFollowUp] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
+  const hasLeadAccess = user?.role === 'admin' || lead.assignedTo === user?.id;
 
   const loadComments = useCallback(() => {
     const leadComments = api.getComments(lead.id);
@@ -51,15 +52,29 @@ const LeadDetails = ({ lead, onClose, onUpdate }) => {
   }, [loadComments]);
 
   const handleAddComment = () => {
+    if (!hasLeadAccess) {
+      toast.error('You do not have permission to comment on this lead.');
+      return;
+    }
+
     if (newComment.trim()) {
-      api.addComment(lead.id, newComment);
-      loadComments();
-      setNewComment('');
-      toast.success('Comment added successfully');
+      try {
+        api.addComment(lead.id, newComment);
+        loadComments();
+        setNewComment('');
+        toast.success('Comment added successfully');
+      } catch (error) {
+        toast.error(error?.message || 'Unable to add comment.');
+      }
     }
   };
 
   const handleSetFollowUp = async () => {
+    if (!hasLeadAccess) {
+      toast.error('You do not have permission to schedule a follow-up for this lead.');
+      return;
+    }
+
     if (!followUpDate || !followUpTime) {
       toast.error('Please select date and time');
       return;
@@ -72,7 +87,12 @@ const LeadDetails = ({ lead, onClose, onUpdate }) => {
     }
     
     // Save follow-up
-    api.setFollowUp(lead.id, followUpDateTime.toISOString(), followUpType, followUpNotes);
+    try {
+      api.setFollowUp(lead.id, followUpDateTime.toISOString(), followUpType, followUpNotes);
+    } catch (error) {
+      toast.error(error?.message || 'Unable to schedule follow-up.');
+      return;
+    }
     
     // Check email settings and send notification
     const emailSettings = JSON.parse(localStorage.getItem('email_settings') || '{}');
@@ -97,23 +117,23 @@ const LeadDetails = ({ lead, onClose, onUpdate }) => {
           setSendingEmail(false);
           
           if (result.success) {
-            toast.success(`✓ Follow-up scheduled! Email sent to ${agent.name}`);
+            toast.success(`Follow-up scheduled. Email sent to ${agent.name}`);
           } else {
-            toast.warning(`✓ Follow-up scheduled but email notification failed. Check EmailJS configuration.`);
+            toast.warning(`Follow-up scheduled but email notification failed. Check EmailJS configuration.`);
           }
         } else {
           setSendingEmail(false);
-          toast.info(`✓ Follow-up scheduled. Agent ${lead.assignedTo} has no email configured.`);
+          toast.info(`Follow-up scheduled. Agent ${lead.assignedTo} has no email configured.`);
         }
       } else {
         setSendingEmail(false);
-        toast.success('✓ Follow-up scheduled successfully');
+        toast.success('Follow-up scheduled successfully');
       }
     } else {
       if (!isEmailConfigured) {
-        toast.info('✓ Follow-up scheduled. Configure EmailJS to send email notifications.');
+        toast.info('Follow-up scheduled. Configure EmailJS to send email notifications.');
       } else {
-        toast.success('✓ Follow-up scheduled successfully');
+        toast.success('Follow-up scheduled successfully');
       }
     }
     
@@ -212,6 +232,13 @@ const LeadDetails = ({ lead, onClose, onUpdate }) => {
             </div>
           )}
 
+          {!hasLeadAccess && (
+            <div className="permission-warning">
+              <AlertCircle size={18} />
+              <span>You do not have permission to view or update this lead.</span>
+            </div>
+          )}
+
           {/* Notes Section */}
           {lead.notes && (
             <div className="notes-section">
@@ -224,7 +251,7 @@ const LeadDetails = ({ lead, onClose, onUpdate }) => {
           )}
 
           {/* Follow-up Button */}
-          {!showFollowUp && (
+          {!showFollowUp && hasLeadAccess && (
             <button 
               className="schedule-followup-btn"
               onClick={() => setShowFollowUp(true)}
@@ -249,6 +276,7 @@ const LeadDetails = ({ lead, onClose, onUpdate }) => {
                       <button 
                         className={`type-btn ${followUpType === 'call' ? 'active' : ''}`}
                         onClick={() => setFollowUpType('call')}
+                        disabled={!hasLeadAccess}
                       >
                         <Phone size={14} />
                         Call
@@ -256,6 +284,7 @@ const LeadDetails = ({ lead, onClose, onUpdate }) => {
                       <button 
                         className={`type-btn ${followUpType === 'meeting' ? 'active' : ''}`}
                         onClick={() => setFollowUpType('meeting')}
+                        disabled={!hasLeadAccess}
                       >
                         <Users size={14} />
                         Meeting
@@ -269,6 +298,7 @@ const LeadDetails = ({ lead, onClose, onUpdate }) => {
                       value={followUpDate}
                       onChange={(e) => setFollowUpDate(e.target.value)}
                       min={new Date().toISOString().split('T')[0]}
+                      disabled={!hasLeadAccess}
                     />
                   </div>
                   <div className="form-group">
@@ -277,6 +307,7 @@ const LeadDetails = ({ lead, onClose, onUpdate }) => {
                       type="time"
                       value={followUpTime}
                       onChange={(e) => setFollowUpTime(e.target.value)}
+                      disabled={!hasLeadAccess}
                     />
                   </div>
                 </div>
@@ -287,6 +318,7 @@ const LeadDetails = ({ lead, onClose, onUpdate }) => {
                     onChange={(e) => setFollowUpNotes(e.target.value)}
                     placeholder="Add follow-up notes..."
                     rows="3"
+                    disabled={!hasLeadAccess}
                   />
                 </div>
                 <div className="form-actions">
@@ -300,7 +332,7 @@ const LeadDetails = ({ lead, onClose, onUpdate }) => {
                   <button 
                     className="submit-followup" 
                     onClick={handleSetFollowUp}
-                    disabled={sendingEmail}
+                    disabled={sendingEmail || !hasLeadAccess}
                   >
                     {sendingEmail ? (
                       <>
@@ -358,10 +390,11 @@ const LeadDetails = ({ lead, onClose, onUpdate }) => {
               <textarea
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
-                placeholder="Write a comment..."
+                placeholder={hasLeadAccess ? 'Write a comment...' : 'Comments are disabled for this lead'}
                 rows="2"
+                disabled={!hasLeadAccess}
               />
-              <button onClick={handleAddComment} disabled={!newComment.trim()}>
+              <button onClick={handleAddComment} disabled={!hasLeadAccess || !newComment.trim()}>
                 <Send size={16} />
                 Send
               </button>

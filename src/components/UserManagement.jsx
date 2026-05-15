@@ -80,15 +80,15 @@ const UserManagement = ({ onUserUpdate }) => {
       setSendingEmail(false);
       
       if (result.success) {
-        toast.success(`✅ User ${formData.name} added! Welcome email sent to ${formData.email}`);
+        toast.success(`User ${formData.name} added. Welcome email sent to ${formData.email}`);
       } else {
-        toast.warning(`⚠️ User ${formData.name} added but welcome email failed. Check EmailJS configuration.`);
+        toast.warning(`User ${formData.name} added but welcome email failed. Check EmailJS configuration.`);
       }
     } else {
       if (!isEmailConfigured) {
-        toast.info(`✅ User ${formData.name} added. Configure EmailJS to send welcome emails.`);
+        toast.info(`User ${formData.name} added. Configure EmailJS to send welcome emails.`);
       } else {
-        toast.success(`✅ User ${formData.name} added successfully`);
+        toast.success(`User ${formData.name} added successfully`);
       }
     }
     
